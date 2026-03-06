@@ -57,7 +57,7 @@ def atualizar_full_atual(service_drive):
     print(f"   ✅ Mês encontrado: {items_mes[0]['name']}")
 
     
-    print(f"🔎 2. Procurando pasta do dia '{texto_data}' com 'AT'...")
+    print(f" 2. Procurando pasta do dia '{texto_data}' com 'AT'...")
     query_dia = f"'{id_mes_encontrado}' in parents and name contains 'AT' and trashed = false"
     
     results_dia = service_drive.files().list(
@@ -323,7 +323,7 @@ def consulta_integração(client, id_origem , id_destino):
 
     if lista_coluna_B:
         total_linhas = len(lista_coluna_B)
-        print(f"🚀 Escrevendo {total_linhas} linhas...")
+        print(f" Escrevendo {total_linhas} linhas...")
         
         range_A = f"A3:A{total_linhas + 2}"
         range_B = f"B3:B{total_linhas + 2}"
@@ -360,3 +360,4 @@ if __name__ == "__main__":
     except Exception as e:
 
         print(f"ERRO TÉCNICO: {e}")
+
