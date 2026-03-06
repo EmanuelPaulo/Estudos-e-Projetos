@@ -1,4 +1,4 @@
-#import
+#Bibliotecas
 import gspread
 from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
@@ -7,7 +7,7 @@ import time
 import re
 
 #VALORES
-PASTA_ID_FULL = "1FlCl6QmAtwCCjOpzc58gghvW7FXa6Rr_"
+PASTA_ID_FULL = ""
 ARQUIVOS_CREDENCIAIS = "creds.json"
 NOME_MESES = [
     "", "01-jan", "02-fev", "03-mar", "04-abr", "05-mai", "06-jun",
@@ -143,5 +143,6 @@ if __name__ == "__main__":
 
 else:
     print("Não foi possivel atualizar")
+
 
 
