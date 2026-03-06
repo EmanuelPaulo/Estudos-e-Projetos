@@ -6,8 +6,8 @@ import re
 import time
 
 
-PLANILHA_ENVIOS_FULL = "1_xm_buDMCwlEu-UfxKGkqA0_qMTQtphayZqGg4KEY8w"
-PASTA_ID_FULL = "1FlCl6QmAtwCCjOpzc58gghvW7FXa6Rr_"
+PLANILHA_ENVIOS_FULL = ""
+PASTA_ID_FULL = ""
 ARQUIVOS_CREDENCIAIS = "creds.json" 
 
 NOME_MESES = [
@@ -78,7 +78,7 @@ def atualizar_full_atual(service_drive):
 
     
     nome_arquivo = "FULL PRONTO" 
-    print(f"🔎 3. Procurando arquivo '{nome_arquivo}'...")
+    print(f" 3. Procurando arquivo '{nome_arquivo}'...")
     
     query_arq = f"'{id_pasta_dia}' in parents and name contains '{nome_arquivo}' and mimeType = 'application/vnd.google-apps.spreadsheet' and trashed = false"
     
@@ -358,4 +358,5 @@ if __name__ == "__main__":
             print("A busca falhou em alguma etapa.")
             
     except Exception as e:
+
         print(f"ERRO TÉCNICO: {e}")
