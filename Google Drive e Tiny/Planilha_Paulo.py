@@ -7,7 +7,7 @@ import time
 import re
 from gspread.cell import Cell
 
-PASTA_ID_FULL = "1FlCl6QmAtwCCjOpzc58gghvW7FXa6Rr_"
+PASTA_ID_FULL = ""
 ARQUIVOS_CREDENCIAIS = "creds.json"
 NOME_MESES = [
     "", "01-jan", "02-fev", "03-mar", "04-abr", "05-mai", "06-jun",
@@ -168,4 +168,5 @@ if __name__ == "__main__":
   
         somar_skus(service_drive, client_sheets, id_real)
     else:
+
         print("❌ Falha: Não consegui localizar a planilha 'FULL PRONTO' automaticamente.") 
