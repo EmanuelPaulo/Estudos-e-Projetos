@@ -4,7 +4,7 @@ from googleapiclient.discovery import build
 from datetime import datetime
 import time
 
-PASTA_ID_FULL = "1FlCl6QmAtwCCjOpzc58gghvW7FXa6Rr_"
+PASTA_ID_FULL = ""
 ARQUIVOS_CREDENCIAIS = "creds.json"
 NOME_MESES = [
     "", "01-jan", "02-fev", "03-mar", "04-abr", "05-mai", "06-jun",
@@ -109,3 +109,4 @@ if __name__ == "__main__":
         distribuir_dados(service, client_sheets, arquivo_pronto['id'])
     else:
         print("  Não foi possível encontrar o fluxo de pastas até o 'FULL PRONTO'.")
+
