@@ -9,10 +9,10 @@ import time
 # ==============================================================================
 
 # O ID DA PASTA(O teu pessoal)
-ID_PASTA_DRIVE = "15t19SkCGxTKv7InSXkepOBI_ALZc-Vx8" 
+ID_PASTA_DRIVE = "" 
 
 # DADOS FALSOS PARA TESTE (Simulando o Tiny)
-SKU_TESTE = "PI0901 - FITA DOURADA"  # Nome da aba que vamos procurar
+SKU_TESTE = "PI0901 - FITA DOURADA"  # Nome da aba que vai procurar
 QTD_TESTE = 999           # Valor que vamos escrever
 DATA_TESTE = "25/12/2025" # Uma data que JÁ EXISTA na Coluna A da planilha
 
