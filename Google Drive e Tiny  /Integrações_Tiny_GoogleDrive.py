@@ -146,7 +146,7 @@ def buscar_vendas_tiny(data_alvo):
             pedidos = dados['retorno'].get('pedidos', [])
             if not pedidos: break 
             
-            print(f"   📄 Página {pagina}: Processando {len(pedidos)} pedidos...")
+            print(f"   Página {pagina}: Processando {len(pedidos)} pedidos...")
 
             for item in pedidos:
                 p = item['pedido']
