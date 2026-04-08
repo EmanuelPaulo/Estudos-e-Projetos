@@ -24,9 +24,8 @@ fundo_do_site = """
 """
 
 utilizadores = {
-    "Andrey": "12345",
-    "Paulo": "12345",
-    "Caio": "12345"
+    "Nome de usuario": "Senha",
+
 }
 
 PLANILHAS_CONFIG = {
