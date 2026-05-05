@@ -24,14 +24,14 @@ fundo_do_site = """
 """
 
 utilizadores = {
-
+    "Andrey": "12345",
     "Paulo": "12345",
-    
-}
+    "Caio": "12345"
+ }
 
 PLANILHAS_CONFIG = {
     "Integração": {
-        "planilha_id": "",
+        "planilha_id": "1opUy_IRqc1Rzp6ovyVcxtwN8xex6oU2nIUWJtGPsRdo",
         "abas": {
             "Relatorio Integração": "Integração",
             "Relatorio Comercial": "Comercial",
@@ -39,7 +39,7 @@ PLANILHAS_CONFIG = {
         }
     },
     "Produção": {
-        "planilha_id": "",
+        "planilha_id": "128V_od1kEkvRrsiYwg9A024aJwybWhqqkYP3igyhEe4",
         "abas": {
             "Relatorio Produção": "Placa",
             "Relatorio Papel de parede": "Papel de parede",
@@ -47,7 +47,7 @@ PLANILHAS_CONFIG = {
         }
     },
     "Expedição": {
-        "planilha_id": "",
+        "planilha_id": "129ivmaSBoX4V3ppei_HkmX7SgMj6DfEoqlKgTtb3EKs",
         "abas": {
             "Relatorio Expedição": "Expedição",
             "Relatorio Full": "Full",
@@ -55,7 +55,7 @@ PLANILHAS_CONFIG = {
         }
     },
     "Movimentação de carga": {
-        "planilha_id": "",
+        "planilha_id": "1Nb-XnmTysT2gVCX2-IQnCGyvJRP5PCixWqzOSMkkIA0",
         "abas": {
             "Relatorio Mov. de carga": "Movimentação de carga"
         }
@@ -63,7 +63,6 @@ PLANILHAS_CONFIG = {
 }
 
 # Função para conectar ao Google Sheets
-@st.cache_resource
 def conectar_google_sheets():
     try:
         scope = [
@@ -77,7 +76,7 @@ def conectar_google_sheets():
         st.error(f"Erro ao conectar ao Google Sheets: {e}")
         return None
 
-# ⭐ FUNÇÃO CRÍTICA: Transforma a planilha do formato transposto para o formato padrão
+#  FUNÇÃO CRÍTICA: Transforma a planilha do formato transposto para o formato padrão
 def transformar_dados_transpostos(df_raw):
     """
     Transforma a planilha do formato:
@@ -134,13 +133,13 @@ def transformar_dados_transpostos(df_raw):
         return None
 
 def converter_valor(valor):
-    """Converte string para número, tratando formatos brasileiros"""
+    """Converte string para número, tratando formatos brasileiros e evitando erro de milhar"""
     if pd.isna(valor) or valor == "" or valor == "-":
         return None
     
     valor_str = str(valor).strip()
     
-    # Converter tempo (ex: "16:30")
+    # 1. Converter tempo (ex: "16:30") permanece igual
     if ':' in valor_str and 'R$' not in valor_str:
         try:
             partes = valor_str.split(':')
@@ -150,29 +149,27 @@ def converter_valor(valor):
         except:
             return None
     
-    # Converter moeda (ex: "R$ 53.882,16")
-    if 'R$' in valor_str:
-        try:
-            valor_limpo = valor_str.replace('R$', '').replace('.', '').replace(',', '.').strip()
-            return float(valor_limpo)
-        except:
-            return None
-    
-    # Converter número com vírgula decimal (ex: "8,77")
-    if ',' in valor_str:
-        try:
-            return float(valor_str.replace(',', '.'))
-        except:
-            return None
-    
-    # Tentar converter para float diretamente
+    # 2. Tratamento Universal para Números e Moedas Brasileiras
     try:
-        return float(valor_str)
+        # Remove "R$", espaços, e o ponto que separa milhares
+        # Troca a vírgula decimal por ponto
+        valor_limpo = valor_str.replace('R$', '').replace(' ', '')
+        
+        # O segredo: só removemos o ponto se houver uma vírgula depois dele (ex: 1.200,50)
+        # Ou se houver mais de um ponto (ex: 1.000.000)
+        if ',' in valor_limpo:
+            valor_limpo = valor_limpo.replace('.', '').replace(',', '.')
+        else:
+            # Se não tem vírgula mas tem ponto, pode ser o milhar de um número inteiro (ex: 1.000)
+            # Verificamos se o ponto está na posição de milhar
+            valor_limpo = valor_limpo.replace('.', '')
+            
+        return float(valor_limpo)
     except:
         return None
 
-# ⭐ Função para carregar dados do formato transposto
-@st.cache_data(ttl=300)
+#  Função para carregar dados do formato transposto
+
 def carregar_dados_transpostos(planilha_id, nome_aba):
     """
     Carrega dados de uma planilha no formato transposto (métricas nas linhas, datas nas colunas)
@@ -198,7 +195,7 @@ def carregar_dados_transpostos(planilha_id, nome_aba):
             
             # Criar DataFrame com a primeira linha como cabeçalho
             df_raw = pd.DataFrame(todos_dados[1:], columns=todos_dados[0])
-            
+         
             # Transformar do formato transposto para o formato padrão
             df_transformado = transformar_dados_transpostos(df_raw)
             
@@ -210,7 +207,7 @@ def carregar_dados_transpostos(planilha_id, nome_aba):
         st.error(f"Erro ao carregar dados: {e}")
         return None
 
-# ⭐ Função para filtrar dados por métrica específica
+# Função para filtrar dados por métrica específica
 def filtrar_por_metrica(df, nome_metrica):
     """Filtra o DataFrame por uma métrica específica"""
     if df is None or df.empty:
@@ -234,20 +231,42 @@ def dashboard_integracao(df):
     df_hh = filtrar_por_metrica(df, "Homem hora")
     if not df_hh.empty:
         st.subheader("⏰ Homem Hora - Dia a Dia")
-        fig = px.bar(df_hh, x='Data', y='Valor', 
-                     title='Homem Hora por Dia',
-                     labels={'Valor': 'Horas', 'Data': 'Data'})
-        fig.update_layout(height=400)
+        
+        fig = px.bar(
+            df_hh, 
+            x='Data', 
+            y='Valor', 
+            text='Valor', # Define o que será escrito
+            title='Homem Hora por Dia',
+            labels={'Valor': 'Horas', 'Data': 'Data'}
+        )
+        
+        # --- MELHORIA DE LEGIBILIDADE ---
+        fig.update_traces(
+            texttemplate='%{text:.1f}', # Formata para 1 casa decimal
+            textposition='outside',      # Coloca o número FORA da barra (acima)
+            textfont_size=20,            # Aumenta o tamanho da letra
+            cliponaxis=False             # Impede que o número seja cortado no topo
+        )
+        
+        # Ajusta o layout para dar espaço aos números no topo
+        fig.update_layout(
+            height=500, 
+            margin=dict(t=50, b=50), 
+            yaxis=dict(range=[0, df_hh['Valor'].max() * 1.2]) # Dá 20% de sobra no topo
+        )
+        
         st.plotly_chart(fig, use_container_width=True)
+        
         st.markdown("---")
     
     # Cards dos últimos 7 dias
     st.subheader("📈 Indicadores (Últimos 7 Dias)")
     
     # Filtrar dados dos últimos 7 dias
-    ultima_data = df['Data'].max()
-    data_limite = ultima_data - timedelta(days=7)
-    df_ultimos_7dias = df[df['Data'] >= data_limite]
+    hoje = datetime.now()
+    data_limite = hoje - timedelta(days=7)
+    df_ultimos_7dias = df[(df['Data'] >= data_limite) & (df['Data'] <= hoje)]
     
     col1, col2, col3, col4 = st.columns(4)
     
@@ -259,14 +278,14 @@ def dashboard_integracao(df):
             st.metric("Promoções Ativas (7 dias)", f"{int(total) if total else 0}")
     
     # Anúncios Cadastrados
-    df_anuncios_cad = filtrar_por_metrica(df_ultimos_7dias, "Numero de anúncios cadastrados")
+    df_anuncios_cad = filtrar_por_metrica(df_ultimos_7dias, "Numero de anuncios cadastrados")
     if not df_anuncios_cad.empty:
         with col2:
             total = df_anuncios_cad['Valor'].sum()
             st.metric("Anúncios Cadastrados (7 dias)", f"{int(total) if total else 0}")
     
     # Anúncios Excluídos
-    df_anuncios_exc = filtrar_por_metrica(df_ultimos_7dias, "Numero de anúncios excluídos")
+    df_anuncios_exc = filtrar_por_metrica(df_ultimos_7dias, "Numero de anuncios excluidos")
     if not df_anuncios_exc.empty:
         with col3:
             total = df_anuncios_exc['Valor'].sum()
@@ -276,9 +295,18 @@ def dashboard_integracao(df):
     df_risco = filtrar_por_metrica(df, "Produtos com risco de quebra")
     if not df_risco.empty:
         with col4:
-            valor_ontem = df_risco[df_risco['Data'] == ultima_data]['Valor']
-            risco = valor_ontem.values[0] if not valor_ontem.empty else 0
-            st.metric("Risco de Quebra (ontem)", f"{int(risco) if risco else 0} produtos")
+            data_mais_recente = df_risco['Data'].max()
+            
+            # Filtramos o valor comparando a coluna 'Data' com um valor ÚNICO (data_mais_recente)
+            # Isso evita o erro de "Operands are not aligned"
+            valor_mais_recente = df_risco[df_risco['Data'] == data_mais_recente]['Valor']
+            
+            risco = valor_mais_recente.values[0] if not valor_mais_recente.empty else 0
+            
+            st.metric(
+                f"Risco de Quebra ({data_mais_recente.strftime('%d/%m')})", 
+                f"{int(risco) if risco else 0} produtos"
+            )
     
     st.markdown("---")
     
@@ -301,28 +329,30 @@ def dashboard_integracao(df):
         return False
     
     # TACOS Shopee Colai
-    if criar_grafico_tacos(df, "TACOS.*SHOPEE COLAI", "TACOS - Shopee Colai"):
+    col1, col2 = st.columns(2)
+    with col1 :
+        criar_grafico_tacos(df, "TACOS.*SHOPEE COLAI", "TACOS - Shopee Colai")
         st.markdown("---")
-    
     # Saldo ADS Shopee Colai
-    df_saldo_sc = filtrar_por_metrica(df, "Saldo ADS SHOPEE COLAI")
-    if not df_saldo_sc.empty:
-        ultimo_saldo = df_saldo_sc.iloc[-1]['Valor']
-        if ultimo_saldo:
-            st.metric("💰 Saldo ADS Shopee Colai", f"R$ {ultimo_saldo:,.2f}")
-        st.markdown("---")
+        df_saldo_sc = filtrar_por_metrica(df, "Saldo ADS SHOPEE COLAI")
+        if not df_saldo_sc.empty:
+            ultimo_saldo = df_saldo_sc.iloc[-1]['Valor']
+            if ultimo_saldo:
+                st.metric("💰 Saldo ADS Shopee Colai", f"R$ {ultimo_saldo:,.2f}")
+        
     
     # TACOS Shopee Papo
-    if criar_grafico_tacos(df, "TACOS.*SHOPEE PAPO", "TACOS - Shopee Papo"):
+    with col2:
+        criar_grafico_tacos(df, "TACOS.*SHOPEE PAPO", "TACOS - Shopee Papo")
         st.markdown("---")
     
     # Saldo ADS Shopee Papo
-    df_saldo_sp = filtrar_por_metrica(df, "Saldo ADS SHOPEE PAPO")
-    if not df_saldo_sp.empty:
-        ultimo_saldo = df_saldo_sp.iloc[-1]['Valor']
-        if ultimo_saldo:
-            st.metric("💰 Saldo ADS Shopee Papo", f"R$ {ultimo_saldo:,.2f}")
-        st.markdown("---")
+        df_saldo_sp = filtrar_por_metrica(df, "Saldo ADS SHOPEE PAPO")
+        if not df_saldo_sp.empty:
+            ultimo_saldo = df_saldo_sp.iloc[-1]['Valor']
+            if ultimo_saldo:
+                st.metric("💰 Saldo ADS Shopee Papo", f"R$ {ultimo_saldo:,.2f}")
+        
     
     # TACOS Mercado Livre
     col1, col2 = st.columns(2)
@@ -337,6 +367,7 @@ def dashboard_integracao(df):
     col1, col2 = st.columns(2)
     with col1:
         if criar_grafico_tacos(df, "TACOS.*MAGALU COLAI", "TACOS - Magalu Colai"):
+            st.markdown("---")
             df_saldo_mc = filtrar_por_metrica(df, "Saldo ADS MAGALU COLAI")
             if not df_saldo_mc.empty:
                 ultimo_saldo = df_saldo_mc.iloc[-1]['Valor']
@@ -345,6 +376,7 @@ def dashboard_integracao(df):
     
     with col2:
         if criar_grafico_tacos(df, "TACOS.*MAGALU PAPO", "TACOS - Magalu Papo"):
+            st.markdown("---")
             df_saldo_mp = filtrar_por_metrica(df, "Saldo ADS MAGALU PAPO")
             if not df_saldo_mp.empty:
                 ultimo_saldo = df_saldo_mp.iloc[-1]['Valor']
@@ -353,12 +385,293 @@ def dashboard_integracao(df):
 
 def dashboard_comercial(df):
     st.header("📊 Dashboard Comercial")
-    st.info("Dashboard Comercial em desenvolvimento - estrutura similar à Integração")
-    if df is not None and not df.empty:
-        st.dataframe(df)
+    
+    
+    # Gráfico Homem Hora
+    # Gráfico Homem Hora com valores visíveis
+    # Gráfico Homem Hora
+    df_hh = filtrar_por_metrica(df, "Homem hora")
+    if not df_hh.empty:
+        st.subheader("⏰ Homem Hora - Dia a Dia")
+        
+        fig = px.bar(
+            df_hh, 
+            x='Data', 
+            y='Valor', 
+            text='Valor', # Define o que será escrito
+            title='Homem Hora por Dia',
+            labels={'Valor': 'Horas', 'Data': 'Data'}
+        )
+        
+        # --- MELHORIA DE LEGIBILIDADE ---
+        fig.update_traces(
+            texttemplate='%{text:.1f}', # Formata para 1 casa decimal
+            textposition='outside',      # Coloca o número FORA da barra (acima)
+            textfont_size=20,            # Aumenta o tamanho da letra
+            cliponaxis=False,
+            hovertemplate="<b>Valor: %{y}</b><extra></extra>", # Limpa o balão
+            hoverlabel=dict(font_size=30)# Impede que o número seja cortado no topo
+        )
+        
+        # Ajusta o layout para dar espaço aos números no topo
+        fig.update_layout(
+            height=500, 
+            margin=dict(t=50, b=50), 
+            yaxis=dict(range=[0, df_hh['Valor'].max() * 1.2]),
+            hovermode="x unified",# Dá 20% de sobra no topo
+            hoverlabel=dict(
+                    bgcolor="rgba(255,255,255,0.9)",
+                    font_size=18,          # <--- tamanho da fonte no balão
+                    font_family="Arial",
+                    font_color="black"
+                ),
+                xaxis=dict(rangeslider=dict(visible=True), type="date")
+        )
+        
+        st.plotly_chart(fig, use_container_width=True)
+        st.markdown("---")
+    
+    st.subheader("📈 Indicadores (Últimos 7 Dias)")
+    
+    # Filtrar dados dos últimos 7 dias
+    hoje = datetime.now()
+    data_limite = hoje - timedelta(days=7)
+    df_ultimos_7dias = df[(df['Data'] >= data_limite) & (df['Data'] <= hoje)]
+    
+    col1, col2, col3 = st.columns(3)
+    
+    # perguntas respondidas no dia
+    df_qpc = filtrar_por_metrica(df_ultimos_7dias, "Quantidade de perguntas recebidas no dia")
+    if not df_qpc.empty:
+        with col1:
+            total = df_qpc['Valor'].sum()
+            st.metric("Quantidade de perguntas recebidas no dia  (7 dias)", f"{int(total) if total else 0}")
+    
+    # reclamações respondidas no dia
+    df_qrc = filtrar_por_metrica(df_ultimos_7dias, "Quantidade de reclamações respondidas no dia")
+    if not df_qrc.empty:
+        with col2:
+            total = df_qrc['Valor'].sum()
+            st.metric("Quantidade de reclamações respondidas no dia (7 dias)", f"{int(total) if total else 0}")
+    
+    # lives realizadas
+    df_lr = filtrar_por_metrica(df_ultimos_7dias, "Nº lives realizadas")
+    if not df_lr.empty:
+        with col3:
+            total = df_lr['Valor'].sum()
+            st.metric("lives realizadas (7 dias)", f"{int(total) if total else 0}")
+    
+    
+    st.markdown("---")
+    
+    
+    def criar_grafico_perguntas(df, nome_metrica, titulo):
+        df_metrica = filtrar_por_metrica(df, nome_metrica)
+        if not df_metrica.empty:
+            st.subheader(f"{titulo}")
+            fig = px.line(df_metrica, x='Data', y='Valor', title=None, markers=True)
+            
+            # 1. FORÇAR VIA HTML: O template ignora o CSS padrão do Plotly e usa o nosso
+            fig.update_traces(
+                textposition="top center", 
+                texttemplate='%{text:d}', 
+                line_color='#0068c9',
+                hovertemplate="<b>Valor: %{y}</b><extra></extra>", # Limpa o balão
+                hoverlabel=dict(font_size=30) # Tenta aplicar aqui também
+            )
+            
+            # 2. AJUSTE DE LAYOUT GLOBAL: Aqui é onde o 'x unified' busca a fonte
+            fig.update_layout(
+                height=400, # Aumentei um pouco para não cortar o balão grande
+                xaxis_title=None,
+                yaxis_title=None,
+                margin=dict(t=10, b=10, l=10, r=10),
+                hovermode="x unified",
+                
+                # O SEGREDO ESTÁ AQUI: Forçar a fonte no rótulo do hover do Layout
+                hoverlabel=dict(
+                    bgcolor="rgba(255,255,255,0.9)",
+                    font_size=18,          # <--- TESTE COM 25 PRIMEIRO
+                    font_family="Arial",
+                    font_color="black"
+                ),
+                xaxis=dict(rangeslider=dict(visible=True), type="date")
+            )
+            
+            st.plotly_chart(fig, use_container_width=True, config={
+                'responsive': True,
+                'displaylogo': False
+            })
+            
+        return False
+    
+    
+    st.markdown("### 📊 Evolução de Atendimento")
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        criar_grafico_perguntas(df, "Quantidade.*perguntas recebidas no dia", "Perguntas Recebidas")
+    with col2:
+        criar_grafico_perguntas(df, "Quantidade.*reclamações respondidas no dia", "Reclamações Respondidas")
+    with col3:
+        criar_grafico_perguntas(df, "Nº.*Lives realizadas", "Lives Realizadas")
+    
+    
+    st.markdown("---")
+    
+    st.subheader("📈 Indicadores Devoluções (Últimos 7 Dias)")
+    
+    # Filtrar dados dos últimos 7 dias
+    hoje = datetime.now()
+    data_limite = hoje - timedelta(days=8)
+    df_ultimos_7dias = df[(df['Data'] >= data_limite) & (df['Data'] <= hoje)]
+    
+    
+    col1, col2, col3, col4, col5, col6  = st.columns(6)
+    
+    df_custo = df_ultimos_7dias[df_ultimos_7dias['Métrica'].str.contains("Custo total de devoluções", case=False, na=False, regex=False)]
+    with col1:
+        total = df_custo['Valor'].sum() if not df_custo.empty else 0
+        st.metric("Custo Total (R$)", f"{total:,.2f}")
+    
+    # reclamações respondidas no dia
+    df_recup = df_ultimos_7dias[df_ultimos_7dias['Métrica'].str.contains("Valor recuperado de devoluções", case=False, na=False, regex=False)]
+    with col2:
+        total = df_recup['Valor'].sum() if not df_recup.empty else 0
+        st.metric("Recuperado (R$)", f"{total:,.2f}")
+    
+    # lives realizadas
+    df_exp = filtrar_por_metrica(df_ultimos_7dias, "Erro de expedição")
+    with col3:
+        total = df_exp['Valor'].sum() if not df_exp.empty else 0
+        st.metric("Erro Expedição", f"{int(total)}")
+    
+    df_etiq = filtrar_por_metrica(df_ultimos_7dias, "Erro de etiquetagem (FULL)")
+    with col4:
+        total = df_etiq['Valor'].sum() if not df_etiq.empty else 0
+        st.metric("Erro Etiqueta", f"{int(total)}")
+    
+    df_log = filtrar_por_metrica(df_ultimos_7dias, "Erro logisitca (Full)")
+    with col5:
+        total = df_log['Valor'].sum() if not df_log.empty else 0
+        st.metric("Erro Logística", f"{int(total)}")
+    
+    df_qdb = filtrar_por_metrica(df_ultimos_7dias, "Quantidade de devoluções em backlog")
+    if not df_qdb.empty:
+        with col6:
+            total = df_qdb['Valor'].sum()
+            st.metric("Quantidade de devoluções em backlog (7 dias)", f"{int(total) if total else 0}")
+            
+    
+    
+    st.markdown("---")
+    
+    def criar_grafico_multi_linhas(df, lista_metricas, lista_nomes, titulo):
+        """
+        Cria um único gráfico contendo múltiplas métricas comparativas.
+        """
+        dfs_para_juntar = []
+        
+        for metrica, nome_exibicao in zip(lista_metricas, lista_nomes):
+            temp_df = filtrar_por_metrica(df, metrica)
+            if not temp_df.empty:
+                # Renomeamos para o nome que queremos que apareça na legenda
+                temp_df['Legenda'] = nome_exibicao
+                dfs_para_juntar.append(temp_df)
+    
+        if dfs_para_juntar:
+            df_final = pd.concat(dfs_para_juntar)
+            
+            # O segredo está no parâmetro 'color', que cria as linhas separadas
+            fig = px.line(df_final, 
+                        x='Data', 
+                        y='Valor', 
+                        color='Legenda', # Cria uma linha para cada métrica
+                        title=titulo,
+                        markers=True,
+                        ) # Exibe os valores fixos
+            
+            fig.update_traces(textposition="top center", 
+                              texttemplate='%{text:.1f}',
+                              hovertemplate="<b>Valor: %{y}</b><extra></extra>", # Limpa o balão
+                hoverlabel=dict(font_size=30)
+                              )
+            fig.update_layout(height=450, hovermode="x unified",
+                           margin=dict(t=10, b=10),
+                
+                # O SEGREDO ESTÁ AQUI: Forçar a fonte no rótulo do hover do Layout
+                     hoverlabel=dict(
+                    bgcolor="rgba(255,255,255,0.9)",
+                    font_size=18,          # <--- TESTE COM 25 PRIMEIRO
+                    font_family="Arial",
+                    font_color="black"
+                ),
+                xaxis=dict(rangeslider=dict(visible=True), type="date")) # 'x unified' mostra os 3 valores juntos no hover
+            
+            st.plotly_chart(fig, use_container_width=True)
+    
+    st.subheader("🔍 Comparativo de Quantidade de devoluções (Recebidas x Processadas x Backlog)")
+
+    metricas_erros = [
+            "Quantidade de devoluções recebidas", 
+            "Quantidade de devoluções processadas", 
+            "Quantidade de devoluções em backlog"
+        ]
+    nomes_legenda = ["Recebidas", "Processadas", "Backlog"]
+
+    criar_grafico_multi_linhas(df, metricas_erros, nomes_legenda, "Evolução Diária das devoluções")
 
 def dashboard_ti(df):
     st.header("📊 Dashboard TI")
+    
+    df_hh = filtrar_por_metrica(df, "Homem hora")
+    if not df_hh.empty:
+        st.subheader("⏰ Homem Hora - Dia a Dia")
+        
+        fig = px.bar(
+            df_hh, 
+            x='Data', 
+            y='Valor', 
+            text='Valor', # Define o que será escrito
+            title='Homem Hora por Dia',
+            labels={'Valor': 'Horas', 'Data': 'Data'}
+        )
+        
+        # --- MELHORIA DE LEGIBILIDADE ---
+        fig.update_traces(
+            texttemplate='%{text:.1f}', # Formata para 1 casa decimal
+            textposition='outside',      # Coloca o número FORA da barra (acima)
+            textfont_size=20,            # Aumenta o tamanho da letra
+            cliponaxis=False,
+            hovertemplate="<b>Valor: %{y}</b><extra></extra>", # Limpa o balão
+            hoverlabel=dict(font_size=30)# Impede que o número seja cortado no topo
+        )
+        
+        # Ajusta o layout para dar espaço aos números no topo
+        fig.update_layout(
+            height=500, 
+            margin=dict(t=50, b=50), 
+            yaxis=dict(range=[0, df_hh['Valor'].max() * 1.2]),
+            hovermode="x unified",# Dá 20% de sobra no topo
+            hoverlabel=dict(
+                    bgcolor="rgba(255,255,255,0.9)",
+                    font_size=18,          # <--- tamanho da fonte no balão
+                    font_family="Arial",
+                    font_color="black"
+                ),
+                xaxis=dict(rangeslider=dict(visible=True), type="date")
+        )
+        
+        st.plotly_chart(fig, use_container_width=True)
+        st.markdown("---")
+    
+    
+    
+    
+    
+    
+    
+    
     st.info("Dashboard TI em desenvolvimento - estrutura similar à Integração")
     if df is not None and not df.empty:
         st.dataframe(df)
@@ -396,27 +709,7 @@ def exibir_dashboard(setor, nome_relatorio):
     if df is None or df.empty:
         st.error(f"Não foi possível carregar os dados para {setor} - {nome_relatorio}.")
         
-        # Mostrar exemplo do formato esperado
-        with st.expander("Formato esperado da planilha"):
-            st.markdown("""
-        
-            
-            | (vazio) | 31/03 | 01/04 | 02/04 | ... |
-            |---------|-------|-------|-------|-----|
-            | Homem hora | 16:30 | 16 | 15 | ... |
-            | Numero de promoções ativas | 0 | 0 | 0 | ... |
-            | TACOS SHOPEE COLAI | 8,77 | 8,71 | 9,03 | ... |
-            | Saldo ADS SHOPEE COLAI | R$ 53.882,16 | - | - | ... |
-            
-            **Importante:**
-            - Primeira coluna: Nomes das métricas
-            - Primeira linha: Datas (formato DD/MM)
-            - Valores podem ser: números, horas (HH:MM), moedas (R$)
-            - Use "-" para valores vazios
-            """)
-        return
-    
-    # Exibir dashboard baseado no setor
+       
     if setor == "Integração":
         if nome_relatorio == "Relatorio Integração":
             dashboard_integracao(df)
